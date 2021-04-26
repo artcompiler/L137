@@ -97,16 +97,13 @@ export class Transformer extends BasisTransformer {
       let type;
       if (typeof val === 'boolean') {
         type = GraphQLBoolean;
-      } else if (typeof val === 'string' ||
-                 typeof val === 'number' ||
-                 val === null) {
-        type = GraphQLString;
       } else if (val instanceof Array && val.length > 0) {
         type = typeFromValue(name, val[0]);
-        assert(type);
         type = new GraphQLList(type);
       } else if (typeof val === 'object' && val !== null && Object.keys(val).length > 0) {
         type = objectTypeFromObject(name, val);
+      } else {
+        type = GraphQLString;
       }
       return type;
     }
