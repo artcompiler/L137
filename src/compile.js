@@ -98,14 +98,9 @@ export class Transformer extends BasisTransformer {
       if (typeof val === 'boolean') {
         type = GraphQLBoolean;
       } else if (typeof val === 'string' ||
-                 typeof val === 'number') {
+                 typeof val === 'number' ||
+                 val === null) {
         type = GraphQLString;
-      // } else if (typeof val === 'number') {
-      //   if (Number.isInteger(val)) {
-      //     type = GraphQLInt;
-      //   } else {
-      //     type = GraphQLFloat;
-      //   }
       } else if (val instanceof Array && val.length > 0) {
         type = typeFromValue(name, val[0]);
         assert(type);
