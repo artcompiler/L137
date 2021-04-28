@@ -64,6 +64,11 @@ export class Checker extends BasisChecker {
       resume(err, val);
     });
   }
+  NULL(node, options, resume) {
+    const err = [];
+    const val = node;
+    resume(err, val);
+  }
 }
 
 export class Transformer extends BasisTransformer {
@@ -285,23 +290,57 @@ export class Transformer extends BasisTransformer {
       });
     });
     function sort(root, order) {
-      const node = {};
-      let keys = Object.keys(root);
-      if (order === 'ascending' || order === 'descending') {
-        keys = keys.sort(order === 'descending' && ((e1, e2) => {
-          return e1 < e2 && 1 || e1 > e2 && -1 || 0;
-        }) || undefined);
+      if (typeof root !== 'object' || root === null) {
+        return root;
       }
-      keys.forEach(name => {
-        let children = root[name];
-        if (typeof children === 'object') {
-          node[name] = sort(root[name], order);
-        } else {
-          node[name] = children;
+      let node;
+      if (root instanceof Array) {
+        node = root;
+        if (order === 'ascending' || order === 'descending') {
+          node.forEach((child, index) => {
+            if (typeof child === 'object' && child !== null) {
+              node[index] = sort(child, order);
+            }
+          });
+          node = node.sort((e1, e2) => {
+            if (typeof e1 === 'string' && typeof e2 === 'string') {
+              const polarity = order === 'descending' && -1 || 1;
+              return polarity * (e1 < e2 && -1 || e1 > e2 && 1 || 0);
+            } else {
+              return 0;
+            }
+          });
         }
-      });
+      } else {
+        const node = {};
+        let keys = Object.keys(root);
+        if (order === 'ascending' || order === 'descending') {
+          keys = keys.sort((e1, e2) => {
+            if (typeof e1 === 'string' && typeof e2 === 'string') {
+              const polarity = order === 'descending' && -1 || 1;
+              return polarity * (e1 < e2 && -1 || e1 > e2 && 1 || 0);
+            } else {
+              return 0;
+            }
+          });
+        }
+        keys.forEach(name => {
+          let children = root[name];
+          if (typeof children === 'object') {
+            node[name] = sort(root[name], order);
+          } else {
+            node[name] = children;
+          }
+        });
+        return node;  // NodeJS bug? Remove this and the following return never executes.
+      }
       return node;
     }
+  }
+  NULL(node, options, resume) {
+    const err = [];
+    const val = null;
+    resume(err, val);
   }
 }
 export const compiler = new BasisCompiler({
