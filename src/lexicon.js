@@ -1,4 +1,5 @@
 window.gcexports.globalLexicon = {
+  "sort" : { "tk": 1, "name": "SORT", "cls": "function", "length": 2 , "arity": 2 },
   "encode" : { "tk": 1, "name": "ENCODE", "cls": "function", "length": 2 , "arity": 2 },
   "shape" : { "tk": 1, "name": "SHAPE", "cls": "function", "length": 2 , "arity": 2 },
   "query" : { "tk": 1, "name": "QUERY", "cls": "function", "length": 2 , "arity": 2 },

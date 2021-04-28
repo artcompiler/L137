@@ -57,6 +57,13 @@ export class Checker extends BasisChecker {
       resume(err, val);
     });
   }
+  SORT(node, options, resume) {
+    this.visit(node.elts[0], options, async (e0, v0) => {
+      const err = [];
+      const val = node;
+      resume(err, val);
+    });
+  }
 }
 
 export class Transformer extends BasisTransformer {
@@ -262,6 +269,35 @@ export class Transformer extends BasisTransformer {
             name: name,
             value: 1,
           })
+        }
+      });
+      return node;
+    }
+  }
+  SORT(node, options, resume) {
+    this.visit(node.elts[0], options, (e0, v0) => {
+      this.visit(node.elts[1], options, (e1, v1) => {
+        const order = v0;
+        const root = v1;
+        const err = [].concat(e0).concat(e1);
+        const val = sort(root, order);
+        resume(err, val);
+      });
+    });
+    function sort(root, order) {
+      const node = {};
+      let keys = Object.keys(root);
+      if (order === 'ascending' || order === 'descending') {
+        keys = keys.sort(order === 'descending' && ((e1, e2) => {
+          return e1 < e2 && 1 || e1 > e2 && -1 || 0;
+        }) || undefined);
+      }
+      keys.forEach(name => {
+        let children = root[name];
+        if (typeof children === 'object') {
+          node[name] = sort(root[name], order);
+        } else {
+          node[name] = children;
         }
       });
       return node;
