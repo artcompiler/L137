@@ -50,6 +50,13 @@ export class Checker extends BasisChecker {
       resume(err, val);
     });
   }
+  FLATTEN(node, options, resume) {
+    this.visit(node.elts[0], options, async (e0, v0) => {
+      const err = [];
+      const val = node;
+      resume(err, val);
+    });
+  }
   ENCODE(node, options, resume) {
     this.visit(node.elts[0], options, async (e0, v0) => {
       const err = [];
@@ -69,6 +76,94 @@ export class Checker extends BasisChecker {
     const val = node;
     resume(err, val);
   }
+}
+
+function list(parentName, root) {
+  let records = [];
+  root.forEach(node => {
+    if (node instanceof Array) {
+      node.forEach(child => {
+        records = records.concat(record(parentName, child));
+      });
+    } else if (typeof node === 'object' && node !== null) {
+      records = records.concat(record(parentName, node));
+    } else {
+      records.push({
+        [parentName]: node
+      });
+    }
+  });
+  return records;
+}
+function record(parentName, root) {
+  let rows = [];
+  Object.keys(root).forEach(key => {
+    let records = [];
+    const name = `${parentName}/${key}`;
+    const node = root[key];
+    if (node instanceof Array) {
+      records = records.concat(list(name, node));
+    } else if (typeof node === 'object' && node !== null) {
+      records = records.concat(record(name, node));
+    } else {
+      records.push({
+        [name]: node
+      });
+    }
+    if (rows.length > 0) {
+      let newRows = [];
+      rows.forEach(row => {
+        records.forEach(record => {
+          newRows.push(Object.assign({}, row, record));
+        });
+      });
+      rows = newRows;
+    } else {
+      records.forEach(record => {
+        rows.push(record);
+      });
+    }
+  });
+  return rows;
+}
+function table(root) {
+  const rows = [];
+  if (root instanceof Array) {
+    const row = list('', root);
+    rows.push(row);
+  } else {
+    const row = record('', root);
+    rows.push(row);
+  }
+  return rows[0];
+}
+function tree(rows, paths) {
+  const tree = {};
+  let hash;
+  let root = {};
+  rows.forEach(row => {
+    let hash = root;
+    paths.forEach(path => {
+      const value = row[path];
+      if (!hash[value]) {
+        hash[value] = {};
+      }
+      hash = hash[value];
+    });
+  });
+  return root;
+}
+
+function select(rows, cols) {
+  const table = [];
+  rows.forEach(row => {
+    const record = {};
+    cols.forEach(col => {
+      record[col] = row[col];
+    });
+    table.push(record);
+  });
+  return table;
 }
 
 export class Transformer extends BasisTransformer {
@@ -174,81 +269,17 @@ export class Transformer extends BasisTransformer {
         resume(err, val);
       });
     });
-    function list(parentName, root) {
-      let records = [];
-      root.forEach(node => {
-        if (node instanceof Array) {
-          node.forEach(child => {
-            records = records.concat(record(parentName, child));
-          });
-        } else if (typeof node === 'object' && node !== null) {
-          records = records.concat(record(parentName, node));
-        } else {
-          records.push({
-            [parentName]: node
-          });
-        }
+  }
+  FLATTEN(node, options, resume) {
+    this.visit(node.elts[0], options, (e0, v0) => {
+      this.visit(node.elts[1], options, (e1, v1) => {
+        const cols = v0;
+        const root = v1;
+        const err = [].concat(e0).concat(e1);
+        const val = select(table(root, []), cols);
+        resume(err, val);
       });
-      return records;
-    }
-    function record(parentName, root) {
-      let rows = [];
-      Object.keys(root).forEach(key => {
-        let records = [];
-        const name = `${parentName}/${key}`;
-        const node = root[key];
-        if (node instanceof Array) {
-          records = records.concat(list(name, node));
-        } else if (typeof node === 'object' && node !== null) {
-          records = records.concat(record(name, node));
-        } else {
-          records.push({
-            [name]: node
-          });
-        }
-        if (rows.length > 0) {
-          let newRows = [];
-          rows.forEach(row => {
-            records.forEach(record => {
-              newRows.push(Object.assign({}, row, record));
-            });
-          });
-          rows = newRows;
-        } else {
-          records.forEach(record => {
-            rows.push(record);
-          });
-        }
-      });
-      return rows;
-    }
-    function table(root) {
-      const rows = [];
-      if (root instanceof Array) {
-        const row = list('', root);
-        rows.push(row);
-      } else {
-        const row = record('', root);
-        rows.push(row);
-      }
-      return rows[0];
-    }
-    function tree(rows, paths) {
-      const tree = {};
-      let hash;
-      let root = {};
-      rows.forEach(row => {
-        let hash = root;
-        paths.forEach(path => {
-          const value = row[path];
-          if (!hash[value]) {
-            hash[value] = {};
-          }
-          hash = hash[value];
-        });
-      });
-      return root;
-    }
+    });
   }
   ENCODE(node, options, resume) {
     this.visit(node.elts[0], options, (e0, v0) => {

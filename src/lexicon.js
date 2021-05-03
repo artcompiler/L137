@@ -2,6 +2,7 @@ window.gcexports.globalLexicon = {
   "sort" : { "tk": 1, "name": "SORT", "cls": "function", "length": 2 , "arity": 2 },
   "encode" : { "tk": 1, "name": "ENCODE", "cls": "function", "length": 2 , "arity": 2 },
   "shape" : { "tk": 1, "name": "SHAPE", "cls": "function", "length": 2 , "arity": 2 },
+  "flatten" : { "tk": 1, "name": "FLATTEN", "cls": "function", "length": 2 , "arity": 2 },
   "query" : { "tk": 1, "name": "QUERY", "cls": "function", "length": 2 , "arity": 2 },
   "fetch" : { "tk": 1, "name": "FETCH", "cls": "function", "length": 1 , "arity": 1 },
   "val" : { "tk": 1, "name": "VAL", "cls": "function", "length": 2 , "arity": 2 },
