@@ -156,12 +156,17 @@ function tree(rows, paths) {
 
 function select(rows, cols) {
   const table = [];
+  const map = {}
   rows.forEach(row => {
     const record = {};
     cols.forEach(col => {
       record[col] = row[col];
     });
-    table.push(record);
+    const key = JSON.stringify(record);
+    if (!map[key]) {
+      map[key] = true;
+      table.push(record);
+    }
   });
   return table;
 }
