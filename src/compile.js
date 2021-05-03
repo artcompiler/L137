@@ -298,20 +298,27 @@ export class Transformer extends BasisTransformer {
     });
     function encode(root) {
       const node = [];
-      Object.keys(root).forEach(name => {
-        const children = encode(root[name]);
-        if (children.length > 0) {
-          node.push({
-            name: name,
-            children: children,
-          });
-        } else {
-          node.push({
-            name: name,
-            value: 1,
-          })
-        }
-      });
+      if (typeof root !== 'object' || root === null) {
+        node.push({
+          name: root,
+          value: 1,
+        });
+      } else {
+        Object.keys(root).forEach(name => {
+          const children = encode(root[name]);
+          if (children.length > 0) {
+            node.push({
+              name: name,
+              children: children,
+            });
+          } else {
+            node.push({
+              name: name,
+              value: 1,
+            })
+          }
+        });
+      }
       return node;
     }
   }
