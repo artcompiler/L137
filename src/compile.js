@@ -10,6 +10,8 @@ import {
   GraphQLFloat,
   GraphQLBoolean,
   GraphQLList,
+  isObjectType,
+  isScalarType,
 } from 'graphql';
 import {
   Checker as BasisChecker,
@@ -210,7 +212,7 @@ export class Transformer extends BasisTransformer {
       if (typeof val === 'boolean') {
         type = GraphQLBoolean;
       } else if (val instanceof Array && val.length > 0) {
-        type = typeFromValue(name, val[0]);
+        type = typeFromValue(name + "_child", val[0]);
         type = new GraphQLList(type);
       } else if (typeof val === 'object' && val !== null && Object.keys(val).length > 0) {
         type = objectTypeFromObject(name, val);
@@ -244,11 +246,43 @@ export class Transformer extends BasisTransformer {
       name = normalizeName(name);
       assert(name !== '0' && name !== '"0"');
       const fields = {};
+      const args = {};
+      let hasArgs = false;
       Object.keys(obj).forEach(key => {
         const type = typeFromValue(name + '_' + key, obj[key]);
-        if (type && isNaN(+key)) {
+        if (type instanceof GraphQLList && type.ofType instanceof GraphQLObjectType) {
+          const fields = type.ofType.getFields();
+          Object.keys(fields).forEach(key => {
+            const field = fields[key];
+            if (isScalarType(field.type)) {
+              args[field.name] = {type: field.type};
+              hasArgs = true;
+            }
+          });
+        }
+        if (type) {
+          // If type is object, then add an arg for each child field.
           fields[key] = {
             type: type,
+            args: hasArgs && args || undefined,
+            resolve(obj, args) {
+              const data = obj[key];
+              const name = Object.keys(args)[0];
+              let vals = [];
+              if (data instanceof Array) {
+                data.forEach(child => {
+                  if (child[name] === args[name]) {
+                    vals.push(child);
+                  }
+                });
+              }
+              if (vals.length > 0) {
+                vals = vals;
+              } else {
+                vals = data;
+              }
+              return vals;
+            },
           };
         }
       });
