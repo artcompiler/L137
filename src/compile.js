@@ -156,7 +156,11 @@ function tree(rows, paths) {
   return root;
 }
 
-function select(rows, cols) {
+function select(rows, cols, filter) {
+  // TODO use filter to limit rows.
+  if (!cols || cols.length === 0) {
+    return rows;
+  }
   const table = [];
   const map = {}
   rows.forEach(row => {
@@ -265,8 +269,11 @@ export class Transformer extends BasisTransformer {
           fields[key] = {
             type: type,
             args: hasArgs && args || undefined,
-            resolve(obj, args) {
+            resolve(obj, args, context, info) {
               const data = obj[key];
+              if (Object.keys(args).length === 0) {
+                return data;
+              }
               const name = Object.keys(args)[0];
               let vals = [];
               if (data instanceof Array) {
@@ -279,7 +286,7 @@ export class Transformer extends BasisTransformer {
               if (vals.length > 0) {
                 vals = vals;
               } else {
-                vals = data;
+                vals = undefined;
               }
               return vals;
             },
