@@ -1,6 +1,7 @@
 /* Copyright (c) 2021, ARTCOMPILER INC */
 import {assert, message, messages, reserveCodeRange} from "./share.js";
 import bent from 'bent';
+import d3 from 'd3';
 import {
   graphql,
   GraphQLSchema,
@@ -19,7 +20,7 @@ import {
   Compiler as BasisCompiler
 } from '@graffiticode/basis';
 //} from '../../../../work/graffiticode/basis/index.js';
-const getJSON = bent('json');
+const getData = bent('string');
 
 export class Checker extends BasisChecker {
   constructor(nodePool) {
@@ -82,19 +83,22 @@ export class Checker extends BasisChecker {
 
 function list(parentName, root) {
   let records = [];
-  root.forEach(node => {
-    if (node instanceof Array) {
-      node.forEach(child => {
-        records = records.concat(record(parentName, child));
-      });
-    } else if (typeof node === 'object' && node !== null) {
-      records = records.concat(record(parentName, node));
-    } else {
-      records.push({
-        [parentName]: node
-      });
-    }
-  });
+  // console.log("list() root=" + JSON.stringify(root, null, 2));
+  // if (typeof root[0] === "string" || typeof root[0] === "number") {
+  //   records.push({[parentName]: '[' + root.join(', ') + ']'});
+  // } else {
+    root.forEach(node => {
+      if (node instanceof Array) {
+        node.forEach(child => {
+          records = records.concat(record(parentName, child));
+        });
+      } else if (typeof node === 'object' && node !== null) {
+        records = records.concat(record(parentName, node));
+      } else {
+        records.push({[parentName]: node});
+      }
+    });
+  // }
   return records;
 }
 function record(parentName, root) {
@@ -157,7 +161,6 @@ function tree(rows, paths) {
 }
 
 function select(rows, cols, filter) {
-  // TODO use filter to limit rows.
   if (!cols || cols.length === 0) {
     return rows;
   }
@@ -188,9 +191,30 @@ export class Transformer extends BasisTransformer {
     });
   }
   FETCH(node, options, resume) {
+    const TRY_JSON = 1;
+    const TRY_CSV = 2;
     this.visit(node.elts[0], options, async (e0, v0) => {
-      const url = v0;
-      const obj = await getJSON(url);
+      const url = v0.trim();
+      const data = await getData(url);
+      let obj;
+      const firstTry = url.indexOf('.csv') === url.length - '.csv'.length && TRY_CSV || TRY_JSON;
+      try {
+        if (TRY_CSV) {
+          obj = d3.csvParse(data);
+        } else {
+          obj = JSON.parse(data);
+        }
+      } catch (x) {
+        try {
+          if (TRY_JSON) {
+            obj = d3.csvParse(data);
+          } else {
+            obj = JSON.parse(data);
+          }
+        } catch (x) {
+          console.log("ERROR unrecognized format for data=" + data);
+        }
+      }
       const err = [];
       const val = obj;
       resume(err, val);
