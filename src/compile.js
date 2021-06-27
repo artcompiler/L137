@@ -165,7 +165,7 @@ function select(rows, cols, filter) {
     return rows;
   }
   const table = [];
-  const map = {}
+  const map = {};
   rows.forEach(row => {
     const record = {};
     cols.forEach(col => {
@@ -199,14 +199,15 @@ export class Transformer extends BasisTransformer {
       let obj;
       const firstTry = url.indexOf('.csv') === url.length - '.csv'.length && TRY_CSV || TRY_JSON;
       try {
-        if (TRY_CSV) {
+        if (firstTry === TRY_CSV) {
           obj = d3.csvParse(data);
         } else {
           obj = JSON.parse(data);
         }
       } catch (x) {
         try {
-          if (TRY_JSON) {
+          if (firstTry === TRY_JSON) {
+            // We tried JSON, so now try CSV.
             obj = d3.csvParse(data);
           } else {
             obj = JSON.parse(data);
@@ -223,14 +224,17 @@ export class Transformer extends BasisTransformer {
   QUERY(node, options, resume) {
     this.visit(node.elts[0], options, (e0, v0) => {
       this.visit(node.elts[1], options, (e1, v1) => {
-        const query = v0;
-        const root = v1;
+        // Add a root node to query and data so that we can query arrays.
+        const query = `{root ${v0} }`;
+        const root = {
+          'root': v1
+        };
         const schema = schemaFromObject(root);
         graphql(schema, query, root).then((val) => {
           if (val.errors) {
             resume([], val);
           } else {
-            resume([].concat(e0).concat(e1), val.data);
+            resume([].concat(e0).concat(e1), val.data.root);
           }
         });
       });
