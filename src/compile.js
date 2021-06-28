@@ -169,7 +169,10 @@ function select(rows, cols, filter) {
   rows.forEach(row => {
     const record = {};
     cols.forEach(col => {
-      record[col] = row[col];
+      let [name, alias] = col.split('=>');
+      name = name.trim();
+      alias = alias && alias.trim() || name;
+      record[alias] = row[name];
     });
     const key = JSON.stringify(record);
     if (!map[key]) {
@@ -361,11 +364,14 @@ export class Transformer extends BasisTransformer {
         const encoding = v0;
         const root = v1;
         const err = [].concat(e0).concat(e1);
-        const val = encoding === 'name-children' && encode(root) || root;
+        const val =
+              encoding === 'name-children' && encodeNameChildren(root) ||
+              encoding === 'column-values' && encodeColumnValues(root) ||
+              root;
         resume(err, val);
       });
     });
-    function encode(root) {
+    function encodeNameChildren(root) {
       const node = [];
       if (typeof root !== 'object' || root === null) {
         node.push({
@@ -374,7 +380,7 @@ export class Transformer extends BasisTransformer {
         });
       } else {
         Object.keys(root).forEach(name => {
-          const children = encode(root[name]);
+          const children = encodeNameChildren(root[name]);
           if (children.length > 0) {
             node.push({
               name: name,
@@ -384,7 +390,46 @@ export class Transformer extends BasisTransformer {
             node.push({
               name: name,
               value: 1,
-            })
+            });
+          }
+        });
+      }
+      return node;
+    }
+    function encodeColumnValues(root) {
+      const node = [];
+      if (typeof root !== 'object' || root === null) {
+        node.push({
+          name: root,
+          value: 1,
+        });
+      } else if (root instanceof Array) {
+        const cols = [];
+        node.push(cols);
+        root.forEach(row => {
+          const vals = [];
+          Object.keys(row).forEach((key, i) => {
+            // Add each value for the current row.
+            assert(cols[i] === undefined || cols[i] === key);
+            cols[i] = key;
+            vals[i] = row[key];
+          });
+          node.push(vals);
+          assert(cols.length === vals.length);
+        });
+      } else {
+        Object.keys(root).forEach(name => {
+          const children = encodeColumnValues(root[name]);
+          if (children.length > 0) {
+            node.push({
+              name: name,
+              children: children,
+            });
+          } else {
+            node.push({
+              name: name,
+              value: 1,
+            });
           }
         });
       }
