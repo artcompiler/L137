@@ -309,7 +309,8 @@ export class Transformer extends BasisTransformer {
               let vals = [];
               if (data instanceof Array) {
                 data.forEach(child => {
-                  if (child[name] === args[name]) {
+//                  console.log(`objectTypeFromObject() child[${name}]=` + child[name] + ` args[${name}]=` + args[name]);
+                  if (String(child[name]) === String(args[name])) {
                     vals.push(child);
                   }
                 });
